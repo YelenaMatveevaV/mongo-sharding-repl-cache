@@ -68,3 +68,9 @@ for(var i = 0; i < 2000; i++) db.helloDoc.insertOne({age:i, name:"ly"+i})
 Очистка ответа в postman
 Вызов метода второй раз 16ms
 
+Задание 5, 
+Ссылка на схемы, которые созданы вкладками с наименованиями:
+1. AS-IS
+3. TO-BE Кэш+Шарды+Кэш
+4. TO-BE Кэш+Шарды+Кэш+APISIX+CDN
+https://drive.google.com/file/d/1jRxZ5vu23hErpNZB1WI0KGG6UgzzQTEI/view?usp=sharing
