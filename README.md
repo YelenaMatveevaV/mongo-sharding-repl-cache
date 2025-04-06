@@ -53,3 +53,18 @@ for(var i = 0; i < 2000; i++) db.helloDoc.insertOne({age:i, name:"ly"+i})
 Отображение сведений в браузере:
 {"mongo_topology_type":"Sharded","mongo_replicaset_name":null,"mongo_db":"somedb","read_preference":"Primary()","mongo_nodes":[["174.18.0.7",27020]],"mongo_primary_host":null,"mongo_secondary_hosts":[],"mongo_address":["174.18.0.7",27020],"mongo_is_primary":true,"mongo_is_mongos":true,"collections":{"mycollection":{"documents_count":2000},"helloDoc":{"documents_count":5000}},"shards":{"shard1rs":"shard1rs/shard1-primary:27018,shard1-secondary1:27018,shard1-secondary2:27018","shard2rs":"shard2rs/shard2-primary:27019,shard2-secondary1:27019,shard2-secondary2:27019"},"cache_enabled":false,"status":"OK"}
 
+Задание 4
+1. Добавлен контейнер redis_1 в файл compose.yaml
+2. Добавлены папка и файл конфигурации redis
+3. Добавлена переменная REDIS_URL: "redis://174.18.0.2:6379" к контейнеру pymongo_api. Переменная указан со статическим ip, т.к. ранее была ошибка при работе с наименованием с переменной MONGODB_URL.
+4. Построение контейнера pymongo_api с помощью команды docker-compose build
+5. Запуск контейнеров с помощью команды docker-compose up -d
+6. Инициализация реплик в контейнерах shaerd1-primary, shard2-primary, configSrv
+7. Подключение к контейнеру mongo_router, включение шардов в кластер
+8. Включение шардирование для базы данных somedb, добавление коллекции helloDoc
+9. Добавление данных в базу
+10. Запуск postman и добавление запроса GET http://localhost:8080/helloDoc/users
+Вызов метода первый раз 1,02s
+Очистка ответа в postman
+Вызов метода второй раз 16ms
+
