@@ -1,0 +1,264 @@
+services:
+
+#  //сервер конфигурации
+  configSrv:
+    image: mongo:latest # docker образ
+    container_name: configSrv 
+    restart: always
+    ports:
+      - "27017:27017"
+    networks:
+      app-network:
+        ipv4_address: 174.18.0.10
+    volumes:
+      - config-data:/data/somedb
+      - ./init-replica.js:/docker-entrypoint-initdb.d/init-replica.js      
+    command:
+      [
+        "--configsvr",  #//запуск в режиме конфигурации
+        "--replSet",
+        "config_server",
+        "--bind_ip_all",
+        "--port",
+        "27017"
+      ] 
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+#//1-й шард primary
+  shard1-primary:
+    image: mongo:latest
+    container_name: shard1-primary
+    restart: always
+    ports:
+      - "27018:27018"
+    networks:
+      app-network:
+        ipv4_address: 174.18.0.9
+    volumes:
+      - shard1-primary-data:/data/
+      - ./init-replica1.js:/docker-entrypoint-initdb.d/init-replica1.js
+    command:
+      [
+        "--shardsvr", #//запуск в режиме шардинга
+        "--replSet",
+        "shard1rs", # Одно имя для всех нод реплика-сета
+        "--bind_ip_all",
+        "--port",
+        "27018"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+#//1-й шард secondary1
+  shard1-secondary1:
+    image: mongo:latest
+    container_name: shard1-secondary1
+    restart: always
+    ports:
+      - "27021:27018"
+    networks:
+      app-network:
+        ipv4_address: 174.18.0.21
+    volumes:
+      - shard1-secondary1-data:/data/somedb
+    command:
+      [
+        "--shardsvr", #//запуск в режиме шардинга
+        "--replSet",
+        "shard1rs", # Одно имя для всех нод реплика-сета
+        "--bind_ip_all",
+        "--port",
+        "27018"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+#//1-й шард secondary2
+  shard1-secondary2:
+    image: mongo:latest
+    container_name: shard1-secondary2
+    restart: always
+    ports:
+      - "27022:27018"
+    networks:
+      app-network:
+        ipv4_address: 174.18.0.22
+    volumes:
+      - shard1-secondary2-data:/data/somedb
+    command:
+      [
+        "--shardsvr", #//запуск в режиме шардинга
+        "--replSet",
+        "shard1rs", # Одно имя для всех нод реплика-сета
+        "--bind_ip_all",
+        "--port",
+        "27018"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+  #//2-й шард primary
+  shard2-primary:
+    image: mongo:latest
+    container_name: shard2-primary
+    restart: always
+    ports:
+      - "27019:27019"
+    networks:
+      app-network:
+        ipv4_address: 174.18.0.8
+    volumes:
+      - shard2-primary-data:/data/somedb
+      - ./init-replica2.js:/docker-entrypoint-initdb.d/init-replica2.js      
+    command:
+      [
+        "--shardsvr", #//запуск в режиме шардинга
+        "--replSet",
+        "shard2rs",
+        "--bind_ip_all", #// обратите внимание - она отличается от реплики 1-го шарда
+        "--port", 
+        "27019"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s      
+
+  #//2-й шард secondary1
+  shard2-secondary1:
+    image: mongo:latest
+    container_name: shard2-secondary1
+    restart: always
+    ports:
+      - "27023:27019"
+    networks:
+      app-network:
+        ipv4_address: 174.18.0.23
+    volumes:
+      - shard2-secondary1-data:/data/somedb
+    command:
+      [
+        "--shardsvr", #//запуск в режиме шардинга
+        "--replSet", 
+        "shard2rs",
+        "--bind_ip_all", #// обратите внимание - она отличается от реплики 1-го шарда
+        "--port",
+        "27019"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s    
+
+
+  #//2-й шард secondary2
+  shard2-secondary2:
+    image: mongo:latest
+    container_name: shard2-secondary2
+    restart: always
+    ports:
+      - "27024:27019"
+    networks:
+      app-network:
+        ipv4_address: 174.18.0.24
+    volumes:
+      - shard2-secondary2-data:/data/somedb
+    command:
+      [
+        "--shardsvr", #//запуск в режиме шардинга
+        "--replSet",
+        "shard2rs",
+        "--bind_ip_all", #// обратите внимание - она отличается от реплики 1-го шарда
+        "--port", 
+        "27019"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s  
+
+#//роутер
+  mongos_router:
+    image: mongo:latest
+    container_name: mongos_router
+    restart: always
+    ports:
+      - "27020:27020"
+    networks:
+      app-network:
+        ipv4_address: 174.18.0.7
+    depends_on:
+      - configSrv    
+    command:
+      [
+        "mongos", #//обычная mongo в режиме роутера
+        "--configdb", 
+        "config_server/configSrv:27017", #//передача данных сервера конфигурации
+        "--bind_ip_all",
+        "--port",
+        "27020"
+      ]
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      start_period: 10s
+
+  pymongo_api:
+    container_name: pymongo_api
+    build: 
+      context: ./api_app
+      dockerfile: Dockerfile
+    image: kazhem/pymongo_api:1.0.0
+    depends_on:
+      - mongos_router
+    ports:
+      - 8080:8080
+    environment:
+      MONGODB_URL: "mongodb://174.18.0.7:27020"
+      MONGODB_DATABASE_NAME: "somedb"
+    networks:
+      - app-network
+ #   healthcheck:
+ #     test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
+ #     interval: 10s
+ #     timeout: 5s
+ #     retries: 3
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 174.18.0.0/24
+
+volumes:
+  config-data:
+    driver: local
+  shard1-primary-data:
+    driver: local
+  shard1-secondary1-data:
+    driver: local
+  shard1-secondary2-data:
+    driver: local
+  shard2-primary-data:
+    driver: local
+  shard2-secondary1-data:
+    driver: local
+  shard2-secondary2-data:
+    driver: local
+
+  # mongodb1:
+ #   container_name: mongosomedb
+ #   image: dh-mirror.gitverse.ru/mongo:latest
+ #   volumes:
+ #     - mongodb1_data_container:/data/db
